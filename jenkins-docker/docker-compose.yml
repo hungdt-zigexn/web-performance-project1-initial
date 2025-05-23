@@ -1,0 +1,19 @@
+version: '3'
+services:
+  jenkins:
+    build: .
+    container_name: jenkins-firebase
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount thư mục chứa file credentials Firebase
+      - /Users/damhung/Downloads:/firebase-credentials
+    environment:
+      - JENKINS_OPTS=""
+    restart: unless-stopped
+
+volumes:
+  jenkins_home:

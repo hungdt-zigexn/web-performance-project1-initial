@@ -1,10 +1,5 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:20-alpine'
-            args '-u root'
-        }
-    }
+    agent any
 
     environment {
         // Project ID từ file .firebaserc
@@ -62,13 +57,49 @@ pipeline {
             steps {
                 // Deploy lên Firebase Hosting
                 sh '''
-                    # Cài đặt các công cụ cần thiết
-                    echo "Cài đặt các công cụ cần thiết..."
-                    apk add --no-cache git curl jq
+                    # Kiểm tra các công cụ cần thiết
+                    echo "Kiểm tra các công cụ cần thiết..."
+                    which git || echo "Git không được cài đặt"
+                    which curl || echo "Curl không được cài đặt"
+                    which jq || echo "jq không được cài đặt, nhưng sẽ tiếp tục"
 
-                    # Hiển thị phiên bản Node.js
-                    echo "Node.js version:"
-                    node --version
+                    # Kiểm tra và cài đặt Node.js phiên bản mới hơn nếu có thể
+                    echo "Kiểm tra phiên bản Node.js..."
+                    NODE_VERSION=$(node --version)
+                    echo "Node.js version: $NODE_VERSION"
+
+                    # Thử cài đặt NVM nếu chưa có
+                    if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
+                        echo "NVM không được tìm thấy, thử cài đặt NVM..."
+                        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash || echo "Không thể cài đặt NVM"
+
+                        # Kiểm tra lại NVM
+                        if [ -s "$HOME/.nvm/nvm.sh" ]; then
+                            echo "NVM đã được cài đặt thành công"
+                        else
+                            echo "Không thể cài đặt NVM, tiếp tục với Node.js hiện tại"
+                        fi
+                    else
+                        echo "NVM đã được cài đặt"
+                    fi
+
+                    # Thử sử dụng NVM để cài đặt Node.js 20
+                    if [ -s "$HOME/.nvm/nvm.sh" ]; then
+                        echo "Thử cài đặt Node.js 20 với NVM..."
+                        export NVM_DIR="$HOME/.nvm"
+                        . "$NVM_DIR/nvm.sh"
+                        nvm install 20 || echo "Không thể cài đặt Node.js 20 với NVM"
+                        nvm use 20 || echo "Không thể sử dụng Node.js 20"
+                        NODE_VERSION=$(node --version)
+                        echo "Node.js version sau khi cài đặt: $NODE_VERSION"
+                    else
+                        echo "Thử cài đặt Node.js 20 với n..."
+                        # Thử cài đặt n và sử dụng nó để cài đặt Node.js 20
+                        npm install -g n || echo "Không thể cài đặt n"
+                        n 20 || echo "Không thể cài đặt Node.js 20 với n"
+                        NODE_VERSION=$(node --version)
+                        echo "Node.js version sau khi cài đặt: $NODE_VERSION"
+                    fi
 
                     # Cài đặt Firebase CLI cục bộ
                     echo "Installing Firebase CLI..."
@@ -76,8 +107,8 @@ pipeline {
                     if [ ! -f "package.json" ]; then
                         echo '{"name":"firebase-deploy","private":true}' > package.json
                     fi
-                    # Cài đặt Firebase CLI cục bộ
-                    npm install firebase-tools --no-fund --no-audit --no-package-lock
+                    # Cài đặt Firebase CLI cục bộ với cờ --force để bỏ qua cảnh báo về phiên bản Node.js
+                    npm install firebase-tools --no-fund --no-audit --no-package-lock --force
 
                     # Thiết lập biến môi trường cho Firebase credentials
                     export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
@@ -85,6 +116,10 @@ pipeline {
                     # Hiển thị thông tin về file credentials
                     echo "Checking credentials file..."
                     ls -la ${GOOGLE_APPLICATION_CREDENTIALS}
+
+                    # Đảm bảo file credentials có quyền đọc
+                    echo "Đảm bảo file credentials có quyền đọc..."
+                    chmod 644 ${GOOGLE_APPLICATION_CREDENTIALS} || echo "Không thể thay đổi quyền truy cập của file credentials"
 
                     # Kiểm tra jq đã được cài đặt chưa
                     echo "Kiểm tra jq..."
@@ -112,7 +147,7 @@ pipeline {
                     # Sử dụng biến môi trường GOOGLE_APPLICATION_CREDENTIALS
                     echo "Sử dụng service account từ biến môi trường GOOGLE_APPLICATION_CREDENTIALS"
                     ./node_modules/.bin/firebase use ${FIREBASE_PROJECT_ID}
-                    ./node_modules/.bin/firebase deploy --only hosting --project=${FIREBASE_PROJECT_ID} --non-interactive
+                    ./node_modules/.bin/firebase deploy --only hosting --project=${FIREBASE_PROJECT_ID} --non-interactive --force
                 '''
                 echo 'Deployment completed'
             }

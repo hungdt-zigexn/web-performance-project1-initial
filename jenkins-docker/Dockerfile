@@ -4,7 +4,7 @@ USER root
 
 # Cài đặt các công cụ cần thiết
 RUN apt-get update && \
-    apt-get install -y curl gnupg2 lsb-release python3-pip
+    apt-get install -y curl gnupg2 lsb-release python3-pip jq
 
 # Cài đặt Node.js
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \

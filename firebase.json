@@ -1,10 +1,15 @@
 {
   "hosting": {
-    "public": "/",
+    "public": ".",
     "ignore": [
       "firebase.json",
+      ".firebaserc",
+      ".git/**",
+      ".github/**",
+      "**/node_modules/**",
       "**/.*",
-      "**/node_modules/**"
+      "Jenkinsfile",
+      "jenkins-docker/**"
     ]
   }
 }

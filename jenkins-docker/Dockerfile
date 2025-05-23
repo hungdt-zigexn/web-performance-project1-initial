@@ -10,8 +10,10 @@ RUN apt-get update && \
 RUN curl -fsSL https://deb.nodesource.com/setup_16.x | bash - && \
     apt-get install -y nodejs
 
-# Cài đặt Firebase CLI
-RUN npm install -g firebase-tools@11.30.0
+# Cài đặt Firebase CLI với quyền root
+RUN npm install -g firebase-tools@11.30.0 && \
+    which firebase && \
+    ls -la $(which firebase)
 
 # Cài đặt các plugin Jenkins
 RUN jenkins-plugin-cli --plugins \

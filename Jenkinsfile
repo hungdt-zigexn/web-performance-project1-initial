@@ -54,8 +54,12 @@ pipeline {
                     # Hiển thị thông tin về file credentials
                     ls -la ${GOOGLE_APPLICATION_CREDENTIALS}
 
-                    # Deploy lên Firebase Hosting
+                    # Sử dụng Firebase CLI đã cài đặt sẵn
                     echo "Deploying to Firebase..."
+                    # Tìm đường dẫn Firebase CLI
+                    FIREBASE_PATH=$(which firebase)
+                    echo "Firebase CLI path: ${FIREBASE_PATH}"
+                    # Deploy lên Firebase Hosting
                     firebase deploy --only hosting --project=${FIREBASE_PROJECT_ID} --non-interactive
                 '''
                 echo 'Deployment completed'
